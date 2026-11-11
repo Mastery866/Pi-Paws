@@ -1,0 +1,237 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#fdf2f8">
+<title>Pi Paws · Unit Circle Flashcards</title>
+<script src="https://cdn.tailwindcss.com/3.4.17"></script>
+<style>
+:root{--bg1:#fdf2f8;--bg2:#e0f2fe;--surface:#ffffff;--text:#3b2a4a;--muted:#8b7a9c;--line:#f3d9ec;
+box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg1:#1e1530;--bg2:#10213a;--surface:#2a1f40;--text:#f5e9ff;--muted:#b3a2c9;--line:#43335f;color-scheme:dark}}
+:root[data-theme="dark"]{--bg1:#1e1530;--bg2:#10213a;--surface:#2a1f40;--text:#f5e9ff;--muted:#b3a2c9;--line:#43335f;color-scheme:dark}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+html,body{min-height:100%;margin:0}
+body{background:linear-gradient(160deg,var(--bg1),var(--bg2)) fixed;color:var(--text);font-family:ui-rounded,"Nunito","Quicksand",system-ui,-apple-system,"Segoe UI",sans-serif;-webkit-tap-highlight-color:transparent;overflow-x:hidden}
+.surface{background:var(--surface);border:2px solid var(--line)}
+.muted{color:var(--muted)}
+.flip{perspective:1100px}
+.inner{transition:transform .6s cubic-bezier(.4,.2,.2,1.2);transform-style:preserve-3d}
+.flip.on .inner{transform:rotateY(180deg)}
+.face{backface-visibility:hidden;-webkit-backface-visibility:hidden}
+.back{transform:rotateY(180deg)}
+.frac{display:inline-flex;flex-direction:column;align-items:center;line-height:1.15}
+.frac>span:first-child{border-bottom:.09em solid currentColor;padding:0 .18em}
+.bob{animation:bob 2.4s ease-in-out infinite}
+@keyframes bob{0%,100%{transform:translateY(0) rotate(-4deg)}50%{transform:translateY(-8px) rotate(4deg)}}
+.pop{animation:pop .35s ease-out}
+@keyframes pop{0%{transform:scale(.85);opacity:0}100%{transform:scale(1);opacity:1}}
+.fly{position:fixed;font-size:28px;pointer-events:none;z-index:50;animation:fly 1.1s ease-out forwards}
+@keyframes fly{0%{transform:translate(0,0) scale(.5);opacity:1}100%{transform:translate(var(--dx),var(--dy)) scale(1.3) rotate(var(--r));opacity:0}}
+.btn:active{transform:scale(.95)}
+.btn{transition:transform .15s ease,box-shadow .2s}
+@media (hover:hover){.btn:hover{transform:translateY(-2px) scale(1.02)}}
+.paw{position:fixed;top:0;pointer-events:none;z-index:0;opacity:0;animation:drift linear infinite}
+@keyframes drift{0%{transform:translateY(105vh) rotate(0deg);opacity:0}10%,90%{opacity:.4}100%{transform:translateY(-15vh) rotate(360deg);opacity:0}}
+.rise{animation:rise .55s cubic-bezier(.2,.9,.3,1.2) backwards}
+@keyframes rise{from{opacity:0;transform:translateY(24px) scale(.94)}to{opacity:1;transform:none}}
+.slidein{animation:slidein .5s cubic-bezier(.2,.9,.3,1.1)}
+@keyframes slidein{from{opacity:0;transform:translateX(70px) rotate(5deg)}to{opacity:1;transform:none}}
+.floaty{animation:floaty 3.5s ease-in-out infinite}
+@keyframes floaty{0%,100%{transform:translateY(0) rotate(-.6deg)}50%{transform:translateY(-6px) rotate(.6deg)}}
+.stripes{background-image:repeating-linear-gradient(45deg,rgba(255,255,255,.35) 0 10px,transparent 10px 20px);background-size:28px 28px;animation:shine .8s linear infinite}
+@keyframes shine{to{background-position:28px 0}}
+.bump{animation:bump .5s ease-out}
+@keyframes bump{40%{transform:scale(1.35) rotate(-6deg)}}
+.wig{animation:wiggle .5s ease-in-out}
+@keyframes wiggle{0%,100%{transform:rotate(0)}25%{transform:rotate(-12deg)}75%{transform:rotate(12deg)}}
+.boing{animation:boing .45s cubic-bezier(.3,1.4,.5,1)}
+@keyframes boing{0%{transform:scale(.6);opacity:0}60%{transform:scale(1.08)}100%{transform:scale(1);opacity:1}}
+.shk{animation:shk .3s}
+@keyframes shk{20%{transform:translateX(-12px)}40%{transform:translateX(10px)}60%{transform:translateX(-6px)}80%{transform:translateX(4px)}}
+.rain{position:fixed;top:0;font-size:26px;pointer-events:none;z-index:50;animation:rain linear forwards}
+@keyframes rain{0%{transform:translateY(-10vh) rotate(0)}100%{transform:translateY(110vh) rotate(540deg)}}
+@media (prefers-reduced-motion:reduce){*{animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.01ms!important}}
+</style>
+</head>
+<body>
+<div id="bg" aria-hidden="true"></div>
+<div id="app" class="relative z-10 mx-auto w-full max-w-md px-4 py-5 min-h-screen"></div>
+<script>
+// Values copied exactly from the uploaded table (not corrected). "u" = undefined.
+const ANG=[0,30,45,60,90,120,135,150,180,210,225,240,270,300,315,330,360];
+const FN=['cos','sin','tan','sec','csc','cot'];
+const T={
+0:['1','0','0','1','u','u'],
+30:['√3/2','1/2','√3/3','2√3/3','2','√3'],
+45:['√2/2','√2/2','1','√2','√2','1'],
+60:['1/2','√3/2','√3','2','2√3/3','√3/3'],
+90:['0','1','u','u','1','0'],
+120:['-1/2','√3/2','-√3','-2','2√3/3','-√3/3'],
+135:['-√2/2','√2/2','-1','-√2','√2','-1'],
+150:['-√3/2','1/2','-√3/3','-2√3/3','2','-√3'],
+180:['-1','0','0','-1','u','u'],
+210:['-√3/2','-1/2','√3/3','-2√3/3','-2','√3'],
+225:['-√2/2','-√2/2','1','-√2','-√2','1'],
+240:['-1/2','-√3/2','√3','-2','-2√3/3','√3/3'],
+270:['0','-1','u','u','-1','0'],
+300:['1/2','-√3/2','-√3','-2','2√3/3','-√3'],
+315:['√2/2','-√2/2','-1','√2','√2','-1'],
+330:['√3/2','-1/2','-√3/3','2√3/3','2','-√3/3'],
+360:['1','0','0','1','u','u']};
+const COL={cos:['from-pink-400','to-rose-500','🐱'],sin:['from-sky-400','to-blue-500','😸'],tan:['from-amber-300','to-orange-500','😻'],sec:['from-emerald-400','to-teal-500','😼'],csc:['from-violet-400','to-purple-500','🙀'],cot:['from-orange-400','to-red-500','😽']};
+const cards=(angs,fns)=>angs.flatMap(a=>fns.map(f=>({a,f})));
+const SERIES=[
+ {g:'By quadrant',items:[
+  {id:'q1',n:'Kitten Start',e:'🐈',d:'0° – 90°',c:cards([0,30,45,60,90],FN)},
+  {id:'q2',n:'Cloud Pounce',e:'🐈‍⬛',d:'120° – 180°',c:cards([120,135,150,180],FN)},
+  {id:'q3',n:'Moonlight Prowl',e:'😴',d:'210° – 270°',c:cards([210,225,240,270],FN)},
+  {id:'q4',n:'Zoomies',e:'🐾',d:'300° – 360°',c:cards([300,315,330,360],FN)}]},
+ {g:'By function',items:FN.map(f=>({id:f,n:f+' club',e:COL[f][2],d:'all 17 angles',c:cards(ANG,[f])}))},
+ {g:'Wild',items:[
+  {id:'mix',n:'Chaos Mix',e:'🧶',d:'20 random cards',c:cards(ANG,FN),size:20}]}];
+const ROUND=12;
+const S={screen:'home',series:null,deck:[],i:0,flipped:false,known:0,missed:[],streak:0,best:0};
+const $=document.getElementById('app');
+const shuffle=a=>{a=[...a];for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]]}return a};
+function fmt(v,z){z=z||'text-6xl';
+ if(v==='u')return `<span class="${z==='text-6xl'?'text-3xl':'text-xl'} font-extrabold">undefined</span>`;
+ const neg=v[0]==='-',s=neg?v.slice(1):v;
+ const body=s.includes('/')?(([n,d])=>`<span class="frac"><span>${n}</span><span>${d}</span></span>`)(s.split('/')):`<span>${s}</span>`;
+ return `<span class="inline-flex items-center gap-1 ${z} font-extrabold">${neg?'<span>−</span>':''}${body}</span>`}
+function circle(a){
+ const r=40,x=50+r*Math.cos(a*Math.PI/180),y=50-r*Math.sin(a*Math.PI/180);
+ return `<svg viewBox="0 0 100 100" class="w-24 h-24"><circle cx="50" cy="50" r="${r}" fill="none" stroke="currentColor" stroke-opacity=".35" stroke-width="3"/><line x1="10" y1="50" x2="90" y2="50" stroke="currentColor" stroke-opacity=".25"/><line x1="50" y1="10" x2="50" y2="90" stroke="currentColor" stroke-opacity=".25"/><path d="M90 50 A40 40 0 ${a%360>180?1:0} 0 ${x.toFixed(1)} ${y.toFixed(1)}" fill="none" stroke="currentColor" stroke-width="5" stroke-linecap="round" ${a%360===0?'stroke-opacity="0"':''}/><line x1="50" y1="50" x2="${x.toFixed(1)}" y2="${y.toFixed(1)}" stroke="currentColor" stroke-width="3"/><circle cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="5" fill="currentColor"/></svg>`}
+function home(){
+ S.screen='home';
+ $.innerHTML=`<div class="pop">
+ <div class="text-center mt-2 mb-6 rise"><div id="cat" class="text-7xl bob inline-block cursor-pointer select-none">🐱</div>
+ <h1 class="text-3xl font-black mt-1">Pi Paws 🐾</h1>
+ <p class="muted font-semibold">Flip the card, guess the value, and earn purrs!</p>
+ ${S.best?`<p class="mt-2 inline-block px-3 py-1 rounded-full surface text-sm font-bold">🐾 Best streak: ${S.best}</p>`:''}</div>
+ <button id="mem" class="btn rise w-full rounded-3xl p-4 text-left text-white bg-gradient-to-r from-pink-400 via-fuchsia-400 to-sky-400 shadow-lg"><div class="flex items-center gap-3"><span class="text-4xl">😼</span><div><div class="font-black text-lg">Memorize by degree</div><div class="text-sm font-semibold opacity-90">Pick a degree · cos › sin › tan › sec › csc › cot</div></div></div></button>
+ ${SERIES.map(g=>`<h2 class="rise text-xs font-extrabold uppercase tracking-widest muted mb-2 mt-5">${g.g}</h2>
+ <div class="grid grid-cols-2 gap-3">${g.items.map(s=>`<button data-s="${s.id}" class="btn rise surface rounded-3xl p-4 text-left shadow-sm ${g.items.length===1?'col-span-2':''}">
+ <div class="text-3xl">${s.e}</div><div class="font-black capitalize mt-1">${s.n}</div><div class="text-xs muted font-semibold">${s.d}</div></button>`).join('')}</div>`).join('')}
+ <p class="text-center text-xs muted mt-8 mb-2">Tip: tap the card to flip it 🐾</p></div>`;
+ $.querySelectorAll('[data-s]').forEach(b=>b.onclick=()=>start(SERIES.flatMap(g=>g.items).find(s=>s.id===b.dataset.s)));
+ document.getElementById('mem').onclick=()=>memo(S.deg===undefined?0:S.deg);
+ document.getElementById('cat').onclick=e=>{const c=e.currentTarget;c.textContent='😻';c.classList.remove('bob');c.classList.add('wig');const r=c.getBoundingClientRect();burst(r.left+r.width/2,r.top+20,['💗','🐾','💗','✨']);catSay(true);buzz(20);setTimeout(()=>{c.textContent='🐱';c.classList.remove('wig');c.classList.add('bob')},900)};
+ stag()}
+function memo(a){
+ S.screen='memo';S.deg=a;S.open=new Set();S.last=-1;S.fresh=true;
+ const k=ANG.indexOf(a),pv=ANG[(k+ANG.length-1)%ANG.length],nx=ANG[(k+1)%ANG.length];
+ $.innerHTML=`<div class="pop">
+ <div class="flex items-center gap-3 mb-4"><button id="x" class="btn surface w-11 h-11 rounded-2xl font-black text-lg" aria-label="Back">✕</button><h1 class="font-black text-xl flex-1">😼 Memorize by degree</h1></div>
+ <div class="flex gap-2 overflow-x-auto pb-3 -mx-4 px-4" style="scrollbar-width:none">${ANG.map(d=>`<button data-d="${d}" class="btn shrink-0 rounded-full px-4 py-2 font-black ${d===a?'text-white bg-gradient-to-r from-pink-400 to-sky-400 shadow-md':'surface'}">${d}°</button>`).join('')}</div>
+ <div class="surface rounded-[2rem] shadow-xl p-5 mt-2">
+  <div class="flex items-center justify-between"><div class="text-6xl font-black">${a}°</div><div class="muted">${circle(a)}</div></div>
+  <p class="muted text-sm font-bold mt-1 mb-3">Say each value out loud, then tap to check ✨</p>
+  <div id="rows" class="flex flex-col gap-1"></div></div>
+ <div class="grid grid-cols-3 gap-2 mt-4">
+  <button id="rn" class="btn rounded-2xl py-3 font-black text-white bg-gradient-to-r from-emerald-400 to-teal-500 shadow-md">👀 Next</button>
+  <button id="sa" class="btn rounded-2xl py-3 font-black surface">🔓 Show all</button>
+  <button id="ha" class="btn rounded-2xl py-3 font-black surface">🙈 Hide all</button></div>
+ <button id="qz" class="btn w-full rounded-2xl py-3 mt-3 font-black text-white bg-gradient-to-r from-violet-400 to-purple-500 shadow-md">🎯 Quiz me on ${a}°</button>
+ <div class="grid grid-cols-2 gap-2 mt-3">
+  <button id="pv" class="btn rounded-2xl py-3 font-black surface">◀ ${pv}°</button>
+  <button id="nx" class="btn rounded-2xl py-3 font-black surface">${nx}° ▶</button></div></div>`;
+ document.getElementById('x').onclick=home;
+ $.querySelectorAll('[data-d]').forEach(b=>b.onclick=()=>memo(+b.dataset.d));
+ document.getElementById('pv').onclick=()=>memo(pv);
+ document.getElementById('nx').onclick=()=>memo(nx);
+ document.getElementById('rn').onclick=()=>{const i=FN.findIndex((f,j)=>!S.open.has(j));if(i>-1){S.open.add(i);S.last=i;paint()}};
+ document.getElementById('sa').onclick=()=>{S.last=-1;FN.forEach((f,j)=>S.open.add(j));paint();burst(innerWidth/2,innerHeight/2,['😻','✨','🐾'])};
+ document.getElementById('ha').onclick=()=>{S.open.clear();paint()};
+ document.getElementById('qz').onclick=()=>{const s={id:'deg',n:a+'° chain',e:'🎯',c:cards([a],FN)};start(s,s.c)};
+ const on=document.querySelector('[data-d="'+a+'"]');if(on)on.scrollIntoView({inline:'center',block:'nearest'});
+ paint()}
+function paint(){
+ const a=S.deg,el=document.getElementById('rows');
+ el.innerHTML=FN.map((f,i)=>{const [f1,f2,em]=COL[f],o=S.open.has(i);
+  return `<button data-r="${i}" class="btn w-full flex items-center gap-3 rounded-2xl p-3 text-left transition ${S.fresh?'rise':''} ${S.last===i?'boing':''} ${o?'text-white bg-gradient-to-r '+f1+' '+f2+' shadow-md':'surface'}"><span class="w-20 shrink-0 font-black">${em} ${f}</span><span class="opacity-70 font-black">=</span><span class="flex-1 flex justify-end items-center min-h-[2.75rem]">${o?fmt(T[a][i],'text-3xl'):'<span class="muted font-bold">❓ tap to reveal</span>'}</span></button>${i<5?'<div class="text-center muted font-black leading-none">▾</div>':''}`}).join('');
+ el.querySelectorAll('[data-r]').forEach(b=>b.onclick=()=>{const i=+b.dataset.r;if(S.open.has(i)){S.open.delete(i);S.last=-1}else{S.open.add(i);S.last=i}paint()});
+ if(S.fresh){stag(el);S.fresh=false}}
+function start(s,deck){
+ S.series=s;S.deck=deck||shuffle(s.c).slice(0,s.size||ROUND);S.i=0;S.known=0;S.missed=[];S.streak=0;game()}
+function game(){
+ S.screen='game';S.flipped=false;
+ const c=S.deck[S.i],[f1,f2,em]=COL[c.f],ans=T[c.a][FN.indexOf(c.f)],pct=S.i/S.deck.length*100,pp=S.i===0?0:(S.i-1)/S.deck.length*100;
+ $.innerHTML=`<div class="pop">
+ <div class="flex items-center gap-3 mb-5">
+  <button id="x" class="btn surface w-11 h-11 rounded-2xl font-black text-lg" aria-label="Back">✕</button>
+  <div class="flex-1 h-4 rounded-full surface overflow-hidden"><div id="pb" class="relative h-full rounded-full bg-gradient-to-r from-pink-400 to-sky-400 overflow-hidden" style="width:${pp}%;transition:width .7s cubic-bezier(.3,1.3,.5,1)"><div class="stripes absolute inset-0"></div></div></div>
+  <div class="surface rounded-2xl px-3 h-11 flex items-center font-black ${S.streak>0?'bump':''}">${S.streak>=3?'🔥':'🐾'} ${S.streak}</div></div>
+ <p class="text-center muted font-bold text-sm mb-3">Card ${S.i+1} of ${S.deck.length} · ${S.series.n}</p>
+ <div class="slidein"><div class="floaty"><div id="fl" class="flip w-full cursor-pointer select-none" style="height:22rem">
+  <div class="inner relative w-full h-full">
+   <div class="face surface absolute inset-0 rounded-[2rem] shadow-xl flex flex-col items-center justify-center gap-3">
+    <div class="px-4 py-1 rounded-full text-white font-black bg-gradient-to-r ${f1} ${f2}">${em} ${c.f}</div>
+    <div class="text-7xl font-black">${c.a}°</div>
+    <div class="muted">${circle(c.a)}</div>
+    <p class="muted font-bold text-sm">What’s the value? Tap to flip 🐾</p></div>
+   <div class="face back absolute inset-0 rounded-[2rem] shadow-xl flex flex-col items-center justify-center gap-4 text-white bg-gradient-to-br ${f1} ${f2}">
+    <div class="font-black text-2xl opacity-90">${c.f} ${c.a}° =</div>
+    <div class="bg-white/20 rounded-3xl px-6 py-4 min-h-[8rem] flex items-center">${fmt(ans)}</div>
+    <p class="font-bold text-sm opacity-90">Did you get it?</p></div></div></div></div></div>
+ <div id="ctl" class="grid grid-cols-2 gap-3 mt-6 invisible">
+  <button id="no" class="btn rounded-2xl py-4 font-black text-lg surface">😿 Not yet</button>
+  <button id="yes" class="btn rounded-2xl py-4 font-black text-lg text-white bg-gradient-to-r from-emerald-400 to-teal-500 shadow-md">😸 Got it!</button></div></div>`;
+ document.getElementById('x').onclick=home;
+ requestAnimationFrame(()=>requestAnimationFrame(()=>{const pb=document.getElementById('pb');if(pb)pb.style.width=pct+'%'}));
+ document.getElementById('fl').onclick=()=>{
+  S.flipped=!S.flipped;document.getElementById('fl').classList.toggle('on',S.flipped);if(S.flipped){const r=document.getElementById('fl').getBoundingClientRect();burst(r.left+r.width/2,r.top+r.height/2,['✨','⭐','✨'])}
+  if(S.flipped){const c=document.getElementById('ctl');c.classList.remove('invisible');c.classList.remove('boing');void c.offsetWidth;c.classList.add('boing')}};
+ document.getElementById('yes').onclick=e=>answer(true,e);
+ document.getElementById('no').onclick=e=>answer(false,e)}
+function stag(r){(r||$).querySelectorAll('.rise').forEach((e,i)=>e.style.animationDelay=(i*55)+'ms')}
+function rain(p){if(p<75)return;const E=['😻','😸','🐟','🐾','🧶','💖'];for(let i=0;i<22;i++){const d=document.createElement('div');d.className='rain';d.textContent=E[i%E.length];d.style.left=Math.random()*95+'%';d.style.animationDuration=(2.5+Math.random()*2.5)+'s';d.style.animationDelay=(Math.random()*1.2)+'s';document.body.appendChild(d);setTimeout(()=>d.remove(),6500)}}
+function catSay(ok){
+ const A=ok?[['😻','Purrfect!'],['😸','Meow-velous!'],['😽','Paw-some!'],['🐱','Nailed it!']]:[['😿','Aww, next time!'],['🙀','Cat-astrophe!'],['😾','Hiss… try again!']];
+ const [e,t]=A[Math.floor(Math.random()*A.length)],d=document.createElement('div');
+ d.className='fixed inset-x-0 z-50 pointer-events-none flex justify-center';
+ d.style.bottom='calc(env(safe-area-inset-bottom,0px) + 7rem)';
+ d.innerHTML=`<div class="pop surface rounded-3xl px-5 py-3 shadow-xl flex items-center gap-3"><span class="text-4xl">${e}</span><span class="font-black">${t}</span></div>`;
+ document.body.appendChild(d);setTimeout(()=>d.remove(),800)}
+function buzz(n){try{navigator.vibrate&&navigator.vibrate(n)}catch(e){}}
+function burst(x,y,list){
+ list.forEach((em,i)=>{const d=document.createElement('div');d.className='fly';d.textContent=em;
+  d.style.left=x+'px';d.style.top=y+'px';
+  d.style.setProperty('--dx',(Math.random()*240-120)+'px');d.style.setProperty('--dy',(-60-Math.random()*160)+'px');d.style.setProperty('--r',(Math.random()*120-60)+'deg');
+  document.body.appendChild(d);setTimeout(()=>d.remove(),1200)})}
+function answer(ok,e){
+ const r=e.currentTarget.getBoundingClientRect();
+ if(ok){S.known++;S.streak++;S.best=Math.max(S.best,S.streak);buzz(30);const w=document.getElementById('fl').closest('.slidein');w.style.transition='all .4s ease-in';w.style.transform='translateY(-50px) scale(.9) rotate(-5deg)';w.style.opacity=0;
+  burst(r.left+r.width/2,r.top,['😻','🐟','✨','💖','🐾','🧶'])}
+ else{S.missed.push(S.deck[S.i]);S.streak=0;buzz([20,40,20]);document.getElementById('fl').classList.add('shk');burst(r.left+r.width/2,r.top,['😿','🐾'])}
+ catSay(ok);S.i++;setTimeout(()=>S.i>=S.deck.length?result():game(),ok?450:250)}
+function result(){
+ S.screen='result';
+ const n=S.deck.length,p=Math.round(S.known/n*100);
+ const [em,msg]=p===100?['😻','Purr-fect round! Paw-some!']:p>=75?['😸','So close to mastery!']:p>=50?['😺','Nice work, keep going!']:['🐱','Every cat lands on its feet. Try again!'];
+ $.innerHTML=`<div class="pop text-center pt-6">
+ <div class="text-8xl boing inline-block"><div class="bob">${em}</div></div>
+ <h1 class="text-3xl font-black mt-2">${msg}</h1>
+ <div class="rise surface rounded-3xl p-5 mt-5 shadow-md"><div id="sc" class="text-6xl font-black bg-gradient-to-r from-pink-500 to-sky-500 bg-clip-text text-transparent">0/${n}</div>
+ <p class="muted font-bold">${p}% correct · 🐾 best streak ${S.best}</p></div>
+ ${S.missed.length?`<h2 class="text-xs font-extrabold uppercase tracking-widest muted mt-6 mb-2">Review these</h2>
+ <div class="flex flex-wrap justify-center gap-2">${S.missed.map(c=>`<span class="surface rounded-full px-3 py-1 font-bold text-sm">${COL[c.f][2]} ${c.f} ${c.a}°</span>`).join('')}</div>`:''}
+ <div class="rise grid gap-3 mt-8">
+  ${S.missed.length?`<button id="rm" class="btn rounded-2xl py-4 font-black text-white bg-gradient-to-r from-pink-400 to-rose-500 shadow-md">🔁 Retry missed cards</button>`:''}
+  <button id="again" class="btn rounded-2xl py-4 font-black text-white bg-gradient-to-r from-sky-400 to-blue-500 shadow-md">🎲 New round</button>
+  <button id="hm" class="btn rounded-2xl py-4 font-black surface">🏠 All series</button></div></div>`;
+ stag();rain(p);
+ if(S.known>0){let k=0;const iv=setInterval(()=>{k++;const e=document.getElementById('sc');if(!e){clearInterval(iv);return}e.textContent=k+'/'+n;if(k>=S.known)clearInterval(iv)},Math.max(60,700/S.known))}
+ if(p>=75)setTimeout(()=>burst(innerWidth/2,innerHeight/3,['😻','😸','🐟','💖','🐾','🧶','😽','✨']),200);
+ const rm=document.getElementById('rm');if(rm)rm.onclick=()=>start(S.series,shuffle(S.missed));
+ document.getElementById('again').onclick=()=>start(S.series);
+ document.getElementById('hm').onclick=home}
+(function(){const b=document.getElementById('bg'),E=['🐾','🐟','🧶','🐾','🐱','✨'];
+for(let i=0;i<14;i++){const p=document.createElement('div');p.className='paw';p.textContent=E[i%E.length];
+p.style.left=(Math.random()*95)+'%';p.style.fontSize=(16+Math.random()*22)+'px';
+p.style.animationDuration=(14+Math.random()*16)+'s';p.style.animationDelay=(-Math.random()*20)+'s';b.appendChild(p)}})();
+home();
+</script>
+</body>
+</html>
